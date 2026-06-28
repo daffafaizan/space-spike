@@ -1,4 +1,4 @@
-module github.com/daffafaizan/space
+module github.com/daffafaizan/space-spike
 
 go 1.26.1
 
