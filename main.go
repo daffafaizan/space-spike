@@ -49,6 +49,7 @@ type Vector struct {
 type Bullet struct {
 	position Vector
 	velocity Vector
+	rotation float64
 	sprite   *ebiten.Image
 }
 
@@ -66,25 +67,39 @@ func NewBullet(p *Player) *Bullet {
 	pCenterX := p.playerPosition.X + pHalfW
 	pCenterY := p.playerPosition.Y + pHalfH
 
-	bPosX := pCenterX - bHalfW
-	bPosY := pCenterY - bHalfH
+	angleInRadians := p.playerRotation * math.Pi / 180.0
 
-	// So it shoots from the front of the ship
+	directionAngle := angleInRadians - (math.Pi / 2.0)
+
+	dirX := math.Cos(directionAngle)
+	dirY := math.Sin(directionAngle)
+
+	bulletSpeed := 5.0
+	velocity := Vector{
+		X: dirX * bulletSpeed,
+		Y: dirY * bulletSpeed,
+	}
+
 	bOffset := 30.0
+	bPosX := (pCenterX - bHalfW) + (dirX * bOffset)
+	bPosY := (pCenterY - bHalfH) + (dirY * bOffset)
 
 	return &Bullet{
-		position: Vector{X: bPosX, Y: bPosY - bOffset},
-		velocity: Vector{X: 0, Y: -3},
+		position: Vector{X: bPosX, Y: bPosY},
+		velocity: velocity,
+		rotation: p.playerRotation,
 		sprite:   sprite,
 	}
 }
 
 func (b *Bullet) Update() {
+	b.position.X += b.velocity.X
 	b.position.Y += b.velocity.Y
 }
 
 func (b *Bullet) Draw(screen *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Rotate(b.rotation * math.Pi / 180.0)
 	op.GeoM.Translate(b.position.X, b.position.Y)
 	screen.DrawImage(b.sprite, op)
 }
