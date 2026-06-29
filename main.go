@@ -8,6 +8,11 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
+const (
+	ScreenWidth  = 800
+	ScreenHeight = 600
+)
+
 type Vector struct {
 	X float64
 	Y float64
@@ -18,6 +23,7 @@ type Game struct {
 }
 
 type Player struct {
+	sprite                 *ebiten.Image
 	playerPosition         Vector
 	playerVelocity         Vector
 	playerRotation         float64
@@ -25,8 +31,20 @@ type Player struct {
 }
 
 func NewPlayer() *Player {
+	sprite := assets.PlayerSprite
+
+	bounds := sprite.Bounds()
+	halfW := float64(bounds.Dx()) / 2
+	halfH := float64(bounds.Dy()) / 2
+
+	initialPosition := Vector{
+		X: (ScreenWidth / 2) - halfW,
+		Y: (ScreenHeight / 2) - halfH,
+	}
+
 	return &Player{
-		playerPosition:         Vector{X: 0, Y: 0},
+		sprite:                 sprite,
+		playerPosition:         initialPosition,
 		playerVelocity:         Vector{X: 0, Y: 0},
 		playerRotation:         0,
 		playerRotationVelocity: 0,
@@ -74,13 +92,13 @@ func (p *Player) Update() {
 func (p *Player) Draw(screen *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
 
-	width := assets.PlayerSprite.Bounds().Dx()
-	height := assets.PlayerSprite.Bounds().Dx()
-
-	halfW := float64(width / 2)
-	halfH := float64(height / 2)
-
 	if p.playerPosition.X != 0 && p.playerPosition.Y != 0 {
+		width := assets.PlayerSprite.Bounds().Dx()
+		height := assets.PlayerSprite.Bounds().Dy()
+
+		halfW := float64(width / 2)
+		halfH := float64(height / 2)
+
 		op.GeoM.Translate(-halfW, -halfH)
 		op.GeoM.Rotate(p.playerRotation * math.Pi / 180.0)
 		op.GeoM.Translate(halfW, halfH)
@@ -100,11 +118,11 @@ func (g *Game) Draw(screen *ebiten.Image) {
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
-	return outsideWidth, outsideHeight
+	return ScreenWidth, ScreenHeight
 }
 
 func main() {
-	p := &Player{}
+	p := NewPlayer()
 	g := &Game{
 		player: p,
 	}
