@@ -15,6 +15,37 @@ const (
 	ScreenHeight = 600
 )
 
+type Rect struct {
+	X      float64
+	Y      float64
+	Width  float64
+	Height float64
+}
+
+func NewRect(x, y, width, height float64) Rect {
+	return Rect{
+		X:      x,
+		Y:      y,
+		Width:  width,
+		Height: height,
+	}
+}
+
+func (r Rect) MaxX() float64 {
+	return r.X + r.Width
+}
+
+func (r Rect) MaxY() float64 {
+	return r.Y + r.Height
+}
+
+func (r Rect) Intersects(other Rect) bool {
+	return r.X <= other.MaxX() &&
+		other.X <= r.MaxX() &&
+		r.Y <= other.MaxY() &&
+		other.Y <= r.MaxY()
+}
+
 type Timer struct {
 	currentTicks int
 	targetTicks  int
@@ -92,6 +123,17 @@ func NewBullet(p *Player) *Bullet {
 	}
 }
 
+func (b *Bullet) Collider() Rect {
+	bounds := b.sprite.Bounds()
+
+	return NewRect(
+		b.position.X,
+		b.position.Y,
+		float64(bounds.Dx()),
+		float64(bounds.Dy()),
+	)
+}
+
 func (b *Bullet) Update() {
 	b.position.X += b.velocity.X
 	b.position.Y += b.velocity.Y
@@ -127,10 +169,26 @@ func NewMeteor() *Meteor {
 	}
 }
 
-type Game struct {
-	player           *Player
-	meteorSpawnTimer *Timer
-	meteors          []*Meteor
+func (m *Meteor) Collider() Rect {
+	bounds := m.sprite.Bounds()
+
+	return NewRect(
+		m.position.X,
+		m.position.Y,
+		float64(bounds.Dx()),
+		float64(bounds.Dy()),
+	)
+}
+
+func (m *Meteor) Update() {
+	m.position.X += m.velocity.X
+	m.position.Y += m.velocity.Y
+}
+
+func (m *Meteor) Draw(screen *ebiten.Image) {
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(m.position.X, m.position.Y)
+	screen.DrawImage(m.sprite, op)
 }
 
 type Player struct {
@@ -167,15 +225,15 @@ func NewPlayer() *Player {
 	}
 }
 
-func (m *Meteor) Update() {
-	m.position.X += m.velocity.X
-	m.position.Y += m.velocity.Y
-}
+func (p *Player) Collider() Rect {
+	bounds := p.sprite.Bounds()
 
-func (m *Meteor) Draw(screen *ebiten.Image) {
-	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(m.position.X, m.position.Y)
-	screen.DrawImage(m.sprite, op)
+	return NewRect(
+		p.playerPosition.X,
+		p.playerPosition.Y,
+		float64(bounds.Dx()),
+		float64(bounds.Dy()),
+	)
 }
 
 func (p *Player) Update() {
@@ -247,6 +305,12 @@ func (p *Player) Draw(screen *ebiten.Image) {
 	screen.DrawImage(assets.PlayerSprite, op)
 }
 
+type Game struct {
+	player           *Player
+	meteorSpawnTimer *Timer
+	meteors          []*Meteor
+}
+
 func (g *Game) Update() error {
 	g.player.Update()
 
@@ -260,6 +324,15 @@ func (g *Game) Update() error {
 
 	for _, m := range g.meteors {
 		m.Update()
+	}
+
+	for i, m := range g.meteors {
+		for j, b := range g.player.bullets {
+			if m.Collider().Intersects(b.Collider()) {
+				g.meteors = append(g.meteors[:i], g.meteors[i+1:]...)
+				g.player.bullets = append(g.player.bullets[:j], g.player.bullets[j+1:]...)
+			}
+		}
 	}
 
 	return nil
