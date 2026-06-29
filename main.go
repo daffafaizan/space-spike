@@ -46,6 +46,49 @@ type Vector struct {
 	Y float64
 }
 
+type Bullet struct {
+	position Vector
+	velocity Vector
+	sprite   *ebiten.Image
+}
+
+func NewBullet(p *Player) *Bullet {
+	sprite := assets.LaserSprite
+
+	bBounds := sprite.Bounds()
+	bHalfW := float64(bBounds.Dx()) / 2
+	bHalfH := float64(bBounds.Dy()) / 2
+
+	pBounds := p.sprite.Bounds()
+	pHalfW := float64(pBounds.Dx()) / 2
+	pHalfH := float64(pBounds.Dy()) / 2
+
+	pCenterX := p.playerPosition.X + pHalfW
+	pCenterY := p.playerPosition.Y + pHalfH
+
+	bPosX := pCenterX - bHalfW
+	bPosY := pCenterY - bHalfH
+
+	// So it shoots from the front of the ship
+	bOffset := 30.0
+
+	return &Bullet{
+		position: Vector{X: bPosX, Y: bPosY - bOffset},
+		velocity: Vector{X: 0, Y: -3},
+		sprite:   sprite,
+	}
+}
+
+func (b *Bullet) Update() {
+	b.position.Y += b.velocity.Y
+}
+
+func (b *Bullet) Draw(screen *ebiten.Image) {
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(b.position.X, b.position.Y)
+	screen.DrawImage(b.sprite, op)
+}
+
 type Meteor struct {
 	position Vector
 	velocity Vector
@@ -77,6 +120,8 @@ type Game struct {
 
 type Player struct {
 	sprite                 *ebiten.Image
+	attackTimer            *Timer
+	bullets                []*Bullet
 	playerPosition         Vector
 	playerVelocity         Vector
 	playerRotation         float64
@@ -84,6 +129,7 @@ type Player struct {
 }
 
 func NewPlayer() *Player {
+	attackTimer := NewTimer(1 * time.Second)
 	sprite := assets.PlayerSprite
 
 	bounds := sprite.Bounds()
@@ -97,6 +143,8 @@ func NewPlayer() *Player {
 
 	return &Player{
 		sprite:                 sprite,
+		attackTimer:            attackTimer,
+		bullets:                make([]*Bullet, 0),
 		playerPosition:         initialPosition,
 		playerVelocity:         Vector{X: 0, Y: 0},
 		playerRotation:         0,
@@ -152,6 +200,18 @@ func (p *Player) Update() {
 	}
 
 	p.playerRotation += p.playerRotationVelocity
+
+	p.attackTimer.Update()
+	if p.attackTimer.IsReady() && ebiten.IsKeyPressed(ebiten.KeySpace) {
+		p.attackTimer.Reset()
+
+		b := NewBullet(p)
+		p.bullets = append(p.bullets, b)
+	}
+
+	for _, b := range p.bullets {
+		b.Update()
+	}
 }
 
 func (p *Player) Draw(screen *ebiten.Image) {
@@ -195,6 +255,10 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	for _, m := range g.meteors {
 		m.Draw(screen)
+	}
+
+	for _, b := range g.player.bullets {
+		b.Draw(screen)
 	}
 }
 

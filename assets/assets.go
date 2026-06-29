@@ -14,6 +14,7 @@ var assets embed.FS
 
 var PlayerSprite = mustLoadImage("ship.png")
 var MeteorSprites = mustLoadImages("meteors/*.png")
+var LaserSprite = mustLoadImage("laser.png")
 
 func mustLoadImage(name string) *ebiten.Image {
 	f, err := assets.Open(name)
