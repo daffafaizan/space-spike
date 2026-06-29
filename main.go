@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"image/color"
 	"log"
 	"math"
 	"math/rand"
@@ -8,6 +10,7 @@ import (
 
 	"github.com/daffafaizan/space-spike/assets"
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/text"
 )
 
 const (
@@ -306,6 +309,7 @@ func (p *Player) Draw(screen *ebiten.Image) {
 }
 
 type Game struct {
+	score            int
 	player           *Player
 	meteorSpawnTimer *Timer
 	meteors          []*Meteor
@@ -331,6 +335,7 @@ func (g *Game) Update() error {
 			if m.Collider().Intersects(b.Collider()) {
 				g.meteors = append(g.meteors[:i], g.meteors[i+1:]...)
 				g.player.bullets = append(g.player.bullets[:j], g.player.bullets[j+1:]...)
+				g.score += 5
 			}
 		}
 	}
@@ -348,6 +353,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	for _, b := range g.player.bullets {
 		b.Draw(screen)
 	}
+
+	text.Draw(screen, fmt.Sprintf("%06d", g.score), assets.ScoreFont, ScreenWidth/2-100, 50, color.White)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
@@ -358,6 +365,7 @@ func main() {
 	p := NewPlayer()
 
 	g := &Game{
+		score:            0,
 		meteorSpawnTimer: NewTimer(5 * time.Second),
 		meteors:          make([]*Meteor, 0),
 		player:           p,
