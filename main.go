@@ -48,14 +48,23 @@ type Vector struct {
 
 type Meteor struct {
 	position Vector
+	velocity Vector
 	sprite   *ebiten.Image
 }
 
 func NewMeteor() *Meteor {
 	sprite := assets.MeteorSprites[rand.Intn(len(assets.MeteorSprites))]
+	speed := float64(60 / ebiten.TPS())
+
+	velocityX := (rand.Float64()*2 - 1) * speed
+	velocityY := rand.Float64() * speed
+
+	X := float64(rand.Intn(ScreenWidth))
+	Y := 0.0
 
 	return &Meteor{
-		position: Vector{},
+		position: Vector{X: X, Y: Y},
+		velocity: Vector{X: velocityX, Y: velocityY},
 		sprite:   sprite,
 	}
 }
@@ -96,10 +105,8 @@ func NewPlayer() *Player {
 }
 
 func (m *Meteor) Update() {
-	speed := float64(60 / ebiten.TPS())
-
-	m.position.X += speed
-	m.position.Y += speed
+	m.position.X += m.velocity.X
+	m.position.Y += m.velocity.Y
 }
 
 func (m *Meteor) Draw(screen *ebiten.Image) {
