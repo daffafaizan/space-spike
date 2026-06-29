@@ -14,13 +14,26 @@ type Vector struct {
 }
 
 type Game struct {
+	player *Player
+}
+
+type Player struct {
 	playerPosition         Vector
 	playerVelocity         Vector
 	playerRotation         float64
 	playerRotationVelocity float64
 }
 
-func (g *Game) Update() error {
+func NewPlayer() *Player {
+	return &Player{
+		playerPosition:         Vector{X: 0, Y: 0},
+		playerVelocity:         Vector{X: 0, Y: 0},
+		playerRotation:         0,
+		playerRotationVelocity: 0,
+	}
+}
+
+func (p *Player) Update() {
 	speed := float64(60 / ebiten.TPS())
 	var delta Vector
 
@@ -43,24 +56,22 @@ func (g *Game) Update() error {
 		delta.Y *= factor
 	}
 
-	g.playerVelocity.X += delta.X
-	g.playerVelocity.Y += delta.Y
+	p.playerVelocity.X += delta.X
+	p.playerVelocity.Y += delta.Y
 
-	g.playerPosition.X += g.playerVelocity.X
-	g.playerPosition.Y += g.playerVelocity.Y
+	p.playerPosition.X += p.playerVelocity.X
+	p.playerPosition.Y += p.playerVelocity.Y
 
 	if ebiten.IsKeyPressed(ebiten.KeyQ) {
-		g.playerRotationVelocity -= 0.5
+		p.playerRotationVelocity -= 0.5
 	} else if ebiten.IsKeyPressed(ebiten.KeyE) {
-		g.playerRotationVelocity += 0.5
+		p.playerRotationVelocity += 0.5
 	}
 
-	g.playerRotation += g.playerRotationVelocity
-
-	return nil
+	p.playerRotation += p.playerRotationVelocity
 }
 
-func (g *Game) Draw(screen *ebiten.Image) {
+func (p *Player) Draw(screen *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
 
 	width := assets.PlayerSprite.Bounds().Dx()
@@ -69,13 +80,23 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	halfW := float64(width / 2)
 	halfH := float64(height / 2)
 
-	if g.playerPosition.X != 0 && g.playerPosition.Y != 0 {
+	if p.playerPosition.X != 0 && p.playerPosition.Y != 0 {
 		op.GeoM.Translate(-halfW, -halfH)
-		op.GeoM.Rotate(g.playerRotation * math.Pi / 180.0)
+		op.GeoM.Rotate(p.playerRotation * math.Pi / 180.0)
 		op.GeoM.Translate(halfW, halfH)
 	}
-	op.GeoM.Translate(g.playerPosition.X, g.playerPosition.Y)
+	op.GeoM.Translate(p.playerPosition.X, p.playerPosition.Y)
 	screen.DrawImage(assets.PlayerSprite, op)
+}
+
+func (g *Game) Update() error {
+	g.player.Update()
+
+	return nil
+}
+
+func (g *Game) Draw(screen *ebiten.Image) {
+	g.player.Draw(screen)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
@@ -83,11 +104,9 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 }
 
 func main() {
+	p := &Player{}
 	g := &Game{
-		playerPosition:         Vector{X: 100, Y: 100},
-		playerVelocity:         Vector{X: 0, Y: 0},
-		playerRotation:         0,
-		playerRotationVelocity: 0,
+		player: p,
 	}
 
 	err := ebiten.RunGame(g)
